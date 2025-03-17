@@ -1,4 +1,5 @@
 from typing import Tuple, List, Dict, Set
+from math import comb
 
 class Rule():
     """
@@ -89,7 +90,7 @@ class Frontier():
         return new_frontier  # Return a new merged frontier
     
     
-    def determine_combinations(self) -> "FrontierFrequencies":
+    def determine_combinations(self) -> "FrontierCounts":
         """
         This function will determine the possible configurations of mines 
         within the frontier based on the rules given for the frontier. 
@@ -118,21 +119,21 @@ class Frontier():
         
         # Value will be true if mine, false otherwise
         mines: List[bool] = []
-        frequencies: FrontierFrequencies = {}
-        self._determine_combinations(cells, cell_lookup, mines, 0, True, frequencies)
-        self._determine_combinations(cells, cell_lookup, mines, 0, False, frequencies)
+        counts: FrontierCounts = {}
+        self._determine_combinations(cells, cell_lookup, mines, 0, True, counts)
+        self._determine_combinations(cells, cell_lookup, mines, 0, False, counts)
 
-        return frequencies
+        return counts
         
     # Recursive helper function
-    def _determine_combinations(self, cells: List[str], cell_lookup: Dict[str, int], mines: List[bool], current_index: int, is_mine: bool, frontier_frequencies: "FrontierFrequencies"):
+    def _determine_combinations(self, cells: List[str], cell_lookup: Dict[str, int], mines: List[bool], current_index: int, is_mine: bool, frontier_counts: "FrontierCounts"):
         
         cell = cells[current_index]
         
         # Base case
         if current_index == len(cells):
             
-            frontier_frequencies.add_valid_combination(cells, mines)
+            frontier_counts.add_valid_combination(cells, mines)
             
             return 
            
@@ -197,144 +198,179 @@ class Frontier():
         # We have made it out of the checks, and the current branch of our tree 
         # is viable, and we should continue. 
         
-        self._determine_combinations(cells, cell_lookup, mines, current_index+1, True, frontier_frequencies)
-        self._determine_combinations(cells, cell_lookup, mines, current_index+1, False, frontier_frequencies)
+        self._determine_combinations(cells, cell_lookup, mines, current_index+1, True, frontier_counts)
+        self._determine_combinations(cells, cell_lookup, mines, current_index+1, False, frontier_counts)
                         
             
-class FrontierFrequencies():
+class FrontierCounts():
     
     def __init__(self):
-        self.frequencies = Dict[int, Dict[str, int]]   
+        self.counts = Dict[int, Dict[str, int]]   
         
     def add_valid_combination(self, cells: List[str], mines: List[bool]):
         number_of_mines: int = sum(mines)
             
-        # Updates the frequencies in the frequency dict 
-        if number_of_mines in self.frequencies.keys():
+        # Updates the counts in the count dict 
+        if number_of_mines in self.counts.keys():
             for i in range(len(cells)):
                 if mines[i]:  
-                    if cells[i] in self.frequencies[number_of_mines].keys():
-                        self.frequencies[number_of_mines] += 1
+                    if cells[i] in self.counts[number_of_mines].keys():
+                        self.counts[number_of_mines][cells[i]] += 1
                         
                     else:
-                        self.frequencies[number_of_mines] = 1   
-        
-        
-def generate_frontiers(rules: List[Rule]) -> List[Frontier]:
-    frontiers: List[Frontier] = []
-    
-    for rule in rules:
-        
-        # We want to add the cells in our current rule to the cells in the 
-        # appropriate frontier(s). There are three cases that can occur.
-        #
-        # 1) The cells in the rule are not in any of the frontiers. In this case,
-        #    we will want to make a new frontier that contains the cells in the 
-        #    current rule
-        # 
-        # 2) The cells in the rule are in one of the frontiers. In this case, we 
-        #    will want to add the cells in the rule to the frontier's cells. 
-        #
-        # 3) The cells in the rule are in multiple frontiers. In this case, we will 
-        #    merge the collection of frontiers, and then add the cells from the rule 
-        #    to that new frontier.     
+                        self.counts[number_of_mines][cells[i]] = 1   
+                        
+            self.counts[number_of_mines]["local_combinations"] += 1
             
-        # Find the indexes of the frontiers (if any) that contain at least one of 
-        # the cells in the current rule 
-        indexes = []
-        for cell in rule.cells:
-            for i in range(len(frontiers)):
-                if cell in frontiers[i].cells:
-                    indexes.append(i)
-                      
-        # (Case 1) The cells in the current rule were not in any of the frontiers   
-        if not indexes:
-            frontiers.append(Frontier(rule))
-            
-        # (Case 2) The cells in the current rule are in exactly one of the frontiers 
-        elif len(indexes) == 1:
-            frontiers[indexes[0]].add_rule(rule)
-            
-        # (Case 3) The cells in the current rule are in more than one of the frontiers 
         else:
+            self.counts[number_of_mines] = {}
+            for i in range(len(cells)):
+                if mines[i]:
+                    self.counts[number_of_mines][cells[i]] = 1
+                    
+            self.counts[number_of_mines]["local_combinations"] = 1
+            self.counts[number_of_mines]["global_combinations"] = 0
+                        
+class MinesweeperSolver:
+    def __init__(self, rules: List[Rule], num_mines_left: int, num_uninformed_cells: int):
+        self.rules = rules 
+        self.num_mines_left = num_mines_left
+        self.num_uninformed_cells = num_uninformed_cells
+        
+        
+    def generate_frontiers(self, rules: List[Rule]) -> List[Frontier]:
+        frontiers: List[Frontier] = []
+        
+        for rule in rules:
             
-            # Create a new frontier which is the union of the frontiers that contain at 
-            # least one cell in the rule 
-            new_frontier = frontiers[indexes[0]]
-            for i in range(1, len(indexes)):
-                new_frontier = frontiers[indexes[i]].union_frontiers(new_frontier)
+            # We want to add the cells in our current rule to the cells in the 
+            # appropriate frontier(s). There are three cases that can occur.
+            #
+            # 1) The cells in the rule are not in any of the frontiers. In this case,
+            #    we will want to make a new frontier that contains the cells in the 
+            #    current rule
+            # 
+            # 2) The cells in the rule are in one of the frontiers. In this case, we 
+            #    will want to add the cells in the rule to the frontier's cells. 
+            #
+            # 3) The cells in the rule are in multiple frontiers. In this case, we will 
+            #    merge the collection of frontiers, and then add the cells from the rule 
+            #    to that new frontier.     
                 
-            new_frontier.add_rule(rule)
+            # Find the indexes of the frontiers (if any) that contain at least one of 
+            # the cells in the current rule 
+            indexes = []
+            for cell in rule.cells:
+                for i in range(len(frontiers)):
+                    if cell in frontiers[i].cells:
+                        indexes.append(i)
+                        
+            # (Case 1) The cells in the current rule were not in any of the frontiers   
+            if not indexes:
+                frontiers.append(Frontier(rule))
+                
+            # (Case 2) The cells in the current rule are in exactly one of the frontiers 
+            elif len(indexes) == 1:
+                frontiers[indexes[0]].add_rule(rule)
+                
+            # (Case 3) The cells in the current rule are in more than one of the frontiers 
+            else:
+                
+                # Create a new frontier which is the union of the frontiers that contain at 
+                # least one cell in the rule 
+                new_frontier = frontiers[indexes[0]]
+                for i in range(1, len(indexes)):
+                    new_frontier = frontiers[indexes[i]].union_frontiers(new_frontier)
+                    
+                new_frontier.add_rule(rule)
+                
+                # Remove the frontiers from the list of frontiers that were used to create 
+                # new_frontier  
+                for index in reversed(indexes):
+                    del frontiers[index]
+                    
+                frontiers.append(new_frontier)
+                
+    def generate_frontiers_counts(frontiers: List[Frontier]) -> List[FrontierCounts]:
+        
+        frontiers_counts: List[FrontierCounts] = []
+        for frontier in frontiers:
+            frontiers_counts.append(frontier.determine_combinations())
             
-            # Remove the frontiers from the list of frontiers that were used to create 
-            # new_frontier  
-            for index in reversed(indexes):
-                del frontiers[index]
-                
-            frontiers.append(new_frontier)
+        return frontiers_counts
+
+    def generate_global_counts(self, frontiers_counts: List[FrontierCounts], num_mines_left: int, num_uninformed_cells: int) -> int:
+        
+        total_combinations_count = 0 
+        frontiers_indexes = [0]*len(frontiers_counts)
+        
+        # Determines how many unique parities there are in each frontier's possible combinations 
+        termination_indexes = [len(i.counts.keys())-1 for i in frontiers_counts]
+        
+        while True: 
             
-def generate_frontiers_frequencies(frontiers: List[Frontier]) -> List[FrontierFrequencies]:
-    
-    frontiers_frequencies: List[FrontierFrequencies] = []
-    for frontier in frontiers:
-        frontiers_frequencies.append(frontier.determine_combinations())
-        
-    return frontiers_frequencies
-        
+            global_count = 1
+            mine_count = 0
+            for i in range(len(frontiers_counts)):
                 
-
-def solve(rules: List[Rule], mines_left: int):
-    
-    frontiers: List[Frontier] = generate_frontiers(rules)
-    frontiers_frequencies: List[FrontierFrequencies] = generate_frontiers_frequencies(frontiers)
-    
-
-def encode(row: int, column: int, num_columns: int) -> str:
-    """
-    Encode some position on the board to a string 
-    
-    The encode function uses a tile's row and column, as well as 
-    the number of columns in the board to determine what string 
-    should represent the tile. Note, that the encoder uses a base 
-    26 encoding scheme; this means that a = 0, ..., z = 25, ba = 26, 
-    bz = 51, etc. 
-    """
-    id = ""
-    idx = row*num_columns + column
-    
-    if idx == 0:
-        return "a"
-    
-    while (idx != 0):
-        remainder = idx % 26
-        id += chr(remainder + ord('A'))
-        idx //= 26
+                # The key is the number of mines for all combinations in the associated value
+                key = list(frontiers_counts[i].counts.keys())[frontiers_indexes[i]]
+                global_count *= frontiers_counts[i].counts[key]["local_combinations"]
+                mine_count += key
+                
+            if mine_count <= num_mines_left:
+                global_count*comb(num_uninformed_cells, num_mines_left-mine_count)
+                total_different_combinations += global_count
+                
+                for i in range(len(frontiers_counts)):
+                    key = list(frontiers_counts[i].counts.keys())[frontiers_indexes[i]]
+                    frontiers_counts[i].counts[key]["global_combinations"] += global_count
+                
+                
+            
+            if frontiers_indexes == termination_indexes:
+                break
+            
+            # TODO: Add comment, doing this on no sleep, hard to explain what I'm doing
+            # pretty sure it's right tho 
+            for i in range(len(frontiers_counts)):
+                if frontiers_indexes[i] == len(frontiers_counts[i].keys()) - 1:
+                    frontiers_indexes[i] = 0
+                    
+                else:
+                    frontiers_indexes[i] += 1
+                    break
+                
+        return total_combinations_count
+                
+            
+    def generate_frequencies(self, frontiers_counts: List[FrontierCounts], total_combination_count: int):
         
-    return id[::-1]
-    
-
-def decode(encoded_value: str, num_columns: int) -> Tuple[int, int]:
-    """
-    Decode some string to a position on the board 
-    
-    The decode function uses the encoded base 26 value 
-    to determine the row and column of the tile associated 
-    with this encoding. It does this by calculating the base
-    10 representation of the base 26 encoded value, and then 
-    maps that value to the indicies by using modular division.
-    """
-    total = 0
-    encoded_len = len(encoded_value)
-    
-    for i in range(encoded_len):
-        total += (ord(encoded_value[i]) - ord('A'))*(26**(encoded_len-(i+1)))
+        counts: Dict[str, float] = {}
         
-    column_index = total % 26
-    total //= num_columns
-    
-    row_index = total 
-    
-    return (row_index, column_index)
+        # TODO: Add comments 
+        for frontier in frontiers_counts:
+            for num_mines in frontier.counts.keys():
+                for cell in frontier.counts[num_mines].keys():
+                    if cell not in counts:
+                        counts[cell] = frontier.counts[num_mines]["local_combinations"]*(frontier.counts[num_mines][cell] / frontier.counts[num_mines]["local_combinations"])
+                        
+                    else:
+                        counts[cell] += frontier.counts[num_mines]["local_combinations"]*(frontier.counts[num_mines][cell] / frontier.counts[num_mines]["local_combinations"])
+                        
+        frequencies: Dict[str, float] = {}
+        
+        for cell in counts.keys():
+            frequencies[cell] = counts[cell] / total_combination_count
+            
+        return frequencies
+                            
 
-def main():
-    pass
+    def solve(self) -> Dict[str, float]:
+        
+        frontiers: List[Frontier] = self.generate_frontiers(self.rules)
+        frontiers_counts: List[FrontierCounts] = self.generate_frontiers_counts(frontiers)
+        total_combinations_count = self.generate_global_counts(frontiers_counts, self.num_mines_left, self.num_uninformed_cells)
+        frequencies: Dict[str, float] = self.generate_frequencies(frontiers_counts, total_combinations_count)
+        
+        return frequencies
