@@ -8,14 +8,14 @@ def encode(row: int, column: int, num_columns: int) -> str:
     The encode function uses a tile's row and column, as well as 
     the number of columns in the board to determine what string 
     should represent the tile. Note, that the encoder uses a base 
-    26 encoding scheme; this means that a = 0, ..., z = 25, ba = 26, 
-    bz = 51, etc. 
+    26 encoding scheme; this means that A = 0, ..., Z = 25, BA = 26, 
+    BZ = 51, etc. 
     """
     id = ""
     idx = row*num_columns + column
     
     if idx == 0:
-        return "a"
+        return "A"
     
     while (idx != 0):
         remainder = idx % 26
@@ -27,28 +27,17 @@ def encode(row: int, column: int, num_columns: int) -> str:
 
 def decode(encoded_value: str, num_columns: int) -> Tuple[int, int]:
     """
-    Decode some string to a position on the board 
-    
-    The decode function uses the encoded base 26 value 
-    to determine the row and column of the tile associated 
-    with this encoding. It does this by calculating the base
-    10 representation of the base 26 encoded value, and then 
-    maps that value to the indicies by using modular division.
+    Decodes a base-26 string back into (row, column).
     """
-    total = 0
-    encoded_len = len(encoded_value)
-    
-    for i in range(encoded_len):
-        total += (ord(encoded_value[i]) - ord('A'))*(26**(encoded_len-(i+1)))
-        
-    column_index = total % 26
-    total //= num_columns
-    
-    row_index = total 
-    
-    return (row_index, column_index)
+    index = 0
+    for char in encoded_value:
+        index = index *26 + (ord(char) - ord('A'))
+    row = index // num_columns
+    col = index % num_columns
 
-def transform_board_to_ruleset(board: List[int][int], num_mines: int) -> List[Rule]:
+    return row, col
+
+def transform_board_to_ruleset(board: List[List[int]], num_mines: int) -> List[Rule]:
     """
     A function that generates the axiomatic rules for the current state of a board 
     
