@@ -26,8 +26,20 @@ def get_board_settings(max_rows=24, max_cols=30):
             
         
 def game():
-    # rows, cols, mine_count = get_board_settings()
-    board = MinesweeperBoard(24, 30, 200)
-    board.play_game()
+    amassed_risk = 0
+    num_iterations = 50
+    
+    times_won = 0
+    
+    for i in range(num_iterations):
+        # rows, cols, mine_count = get_board_settings()
+        board = MinesweeperBoard(16, 30, 99)
+        won =board.play_game_ai()
+        if won:
+            times_won += 1
+        amassed_risk += board.amassed_risk
+        
+    print(f"total amassed risk: {amassed_risk / num_iterations-times_won}")
+    print(f"win rate: {times_won / num_iterations}")
     
 game()

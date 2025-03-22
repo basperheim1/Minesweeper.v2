@@ -5,13 +5,6 @@ from rule import Rule
 from minesweeper import MinesweeperSolver
 from cell import Cell
 
-class GameStrings:
-    MINE = '💣'
-    FLAG = '🚩'
-    UNREVEALED = '■'
-    EMPTY = ' '
-    COVERED_STATE = "covered"
-    EXPLODED_STATE = "exploded"
 
 class MinesweeperBoard:
     def __init__(self, rows, cols, mine_count):
@@ -27,6 +20,7 @@ class MinesweeperBoard:
         self.undetermined_mine_count = mine_count
         self.cells_with_no_information = self.cell_count
         self.uncovered_cell_count = 0
+        self.amassed_risk = 0
         
         # State variables for win / loss
         self.continue_playing = True
@@ -60,6 +54,7 @@ class MinesweeperBoard:
         """
         Prints the board 
         """
+        
         
         top_row = "     "
         for col_index in range(len(self.board[0])):
@@ -121,7 +116,7 @@ class MinesweeperBoard:
         for r, c in mine_positions:
             self.board[r][c].is_mine = True
             
-    def determine_outcome(self):
+    def determine_outcome(self) -> bool:
         """
         Function that is ran when the game terminates, right now 
         just prints either you win or you lose 
@@ -131,6 +126,9 @@ class MinesweeperBoard:
             
         else:
             print("Congratulations, you won the game!")
+            
+        print(f"amassed risk: {self.amassed_risk}")
+        return not self.lost
             
     def reveal_all(self):
         """
@@ -195,11 +193,11 @@ class MinesweeperBoard:
         
         self.uncovered_cell_count += 1
         
-        # If before being clicked the cell had no information as 
-        # to whether or not it was a mine, now it does, and we 
-        # need to modify the class level counter 
-        if not clicked_cell.some_information:
-            self.cells_with_no_information -= 1
+        if self.uncovered_cell_count == self.safe_count:
+            self.continue_playing = False
+            self.lost = False
+            self.reveal_all()
+            return False
         
         # Cell has not been clicked, meaning we need to update the cells adjacent to it 
         self.update_adjacent_cells(row, col, clicked_cell.is_mine, True, clicked_cell.determined)
@@ -211,7 +209,8 @@ class MinesweeperBoard:
 
         
         if clicked_cell.is_mine:
-            clicked_cell.state = GameStrings.EXPLODED_STATE
+            clicked_cell.lost_game = True
+
             self.continue_playing = False
             self.lost = True
             self.reveal_all()
@@ -278,22 +277,58 @@ class MinesweeperBoard:
         
         """
         
+        expected_mines_not_yet_determined = probabilities["expected_number_of_mines"]
+        print(f"SDFDSF: {expected_mines_not_yet_determined}")
+        
         # Note, that keys in the dictionary will never be intially determined
         for cell_encoded_value in probabilities.keys():
-            row, col = decode(cell_encoded_value, self.cols)
+            
+            if cell_encoded_value != "expected_number_of_mines":
+                row, col = decode(cell_encoded_value, self.cols)
 
-            
-            cell = self.board[row][col]
-            cell.probability = probabilities[cell_encoded_value]
-            
-            if probabilities[cell_encoded_value] == 0.0:
-                cell.determined = True
-                self.update_adjacent_cells(row, col, False, False, False)
                 
-            elif probabilities[cell_encoded_value] == 1.0:
-                cell.determined = True
-                self.undetermined_mine_count -= 1
-                self.update_adjacent_cells(row, col, True, False, False)
+                cell = self.board[row][col]
+                cell.probability = probabilities[cell_encoded_value]
+                
+                if probabilities[cell_encoded_value] == 0.0:
+                    cell.determined = True
+                    self.update_adjacent_cells(row, col, False, False, False)
+                    
+                elif probabilities[cell_encoded_value] == 1.0:
+                    cell.determined = True
+                    self.undetermined_mine_count -= 1
+                    self.update_adjacent_cells(row, col, True, False, False)
+                    expected_mines_not_yet_determined -= 1
+                
+        if self.cells_with_no_information > 0:
+            probability_no_information_cell = (self.undetermined_mine_count - expected_mines_not_yet_determined) / self.cells_with_no_information
+            print(probability_no_information_cell)
+            print(f"cells with no info: {self.cells_with_no_information}")
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    if not self.board[row][col].some_information:
+                        self.board[row][col].probability = probability_no_information_cell
+                        
+    def get_lowest_probability_choice(self) -> str:
+        
+        probability: float = 1
+        encoded_cell: str = ""
+        
+        for row in range(self.rows):
+            for col in range(self.cols):
+                
+                current_cell: Cell = self.board[row][col]
+                
+                if not current_cell.revealed:
+                    if current_cell.probability < probability:
+                        probability = current_cell.probability
+                        encoded_cell = current_cell.encoded_value
+                        print(probability)
+                        
+        self.amassed_risk += probability
+                        
+        return encoded_cell
+                    
              
                 
     def generate_rules(self):
@@ -374,6 +409,38 @@ class MinesweeperBoard:
             self.print_board()
             
         self.print_board()
-        self.determine_outcome()
+        return self.determine_outcome()
             
             
+    def play_game_ai(self):
+        first_row = 0 
+        first_col = 0
+        self.place_mines_safe(first_row, first_col)
+        self.count_board_adjacent_mines_and_cells()
+        self.click_cell(first_row, first_col)
+        rules: List[Rule] = self.generate_rules()
+        
+        # print(f"initial unreduced rules: {rules}")
+        ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
+        probabilities: Dict[str, float] = ms.solve()
+        self.update_probabilities(probabilities)
+        
+        self.print_board()
+                
+        while True:
+            row, col = decode(self.get_lowest_probability_choice(), self.cols)
+            self.click_cell(row, col)
+            
+            # Breaks out of the loop if we lose or win
+            if not self.continue_playing:
+                break
+            
+            rules: List[Rule] = self.generate_rules()
+            ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
+            probabilities: Dict[str, float] = ms.solve()
+            self.update_probabilities(probabilities)
+
+            self.print_board()
+            
+        self.print_board()
+        return self.determine_outcome()

@@ -1,9 +1,9 @@
 from typing import Tuple, List, Dict, Set, Deque
 from math import comb
-
 from collections import deque
 from rule import Rule
-
+import time
+from util import decode_int
 
 
     
@@ -52,12 +52,12 @@ class RuleReducer():
         while queue:
             current_rule = queue.popleft()
             
-            # Possible rule is in the queue but was already removed, in this 
-            # case, we want to ignore the rule 
-            print(f"current rule: {current_rule}")
-            print(f"rules: {self.rules}")
+            # # Possible rule is in the queue but was already removed, in this 
+            # # case, we want to ignore the rule 
+            # print(f"current rule: {current_rule}")
+            # print(f"rules: {self.rules}")
             if current_rule in self.rules:
-                print("IN RULES")
+                # print("IN RULES")
 
                 # Any rule that was modified by the current rule should be added to the queue 
                 # to see if it can be removed 
@@ -205,18 +205,24 @@ class Frontier():
         """
         cells: List[str] = list(self.cells)
         
+        print(cells)
+        
+        cells_sorted = sorted(cells, key=lambda encoded_value: decode_int(encoded_value, 30))
+        print(cells_sorted)
+
+        
         # Make a lookup table so we can find exactly what index a 
         # given cell is at in our cells and mines lists 
         cell_lookup: Dict[str, int] = {}
-        for i in range(len(cells)):
-            cell_lookup[cells[i]] = i
+        for i in range(len(cells_sorted)):
+            cell_lookup[cells_sorted[i]] = i
             
         
         # Value will be true if mine, false otherwise
-        mines: List[bool] = [False]*len(cells)
+        mines: List[bool] = [False]*len(cells_sorted)
         counts: FrontierCounts = FrontierCounts()
-        self._determine_combinations(cells, cell_lookup, mines, 0, True, counts)
-        self._determine_combinations(cells, cell_lookup, mines, 0, False, counts)
+        self._determine_combinations(cells_sorted, cell_lookup, mines, 0, True, counts)
+        self._determine_combinations(cells_sorted, cell_lookup, mines, 0, False, counts)
 
         return counts
         
@@ -344,6 +350,12 @@ class MinesweeperSolver:
         self.num_uninformed_cells = num_uninformed_cells
         self.mines: List[str] = []
         self.safes: List[str] = []
+        self.cells = set()
+        
+    def determine_cells(self):
+        for rule in self.rules:
+            for cell in rule.undetermined_cells:
+                self.cells.add(cell)
         
         
     def generate_frontiers(self) -> List[Frontier]:
@@ -482,6 +494,15 @@ class MinesweeperSolver:
                         
         frequencies: Dict[str, float] = {}
         
+        
+        # Get how often different mine counts are seen 
+        expected_number_of_determined_mines = len(set(self.mines))
+        for frontier in frontiers_counts:
+            for num_mines in frontier.counts.keys():
+                expected_number_of_determined_mines += num_mines*frontier.counts[num_mines]["global_combinations"] / total_combination_count
+                
+        frequencies["expected_number_of_mines"] = expected_number_of_determined_mines
+        
         for cell in counts.keys():
             frequencies[cell] = counts[cell] / total_combination_count
             
@@ -490,6 +511,14 @@ class MinesweeperSolver:
         
         for safe in self.safes:
             frequencies[safe] = 0
+            
+        # Up until this point, cells that have been determined 
+        # to not be mines by the determine_combinations function
+        # have not been added to our frequencies dictionary. 
+        # This issue is handled here
+        for cell in self.cells:
+            if cell not in frequencies:
+                frequencies[cell] = 0
             
         return frequencies
     
@@ -506,16 +535,42 @@ class MinesweeperSolver:
 
     def solve(self) -> Dict[str, float]:
         
-        print(f"rules: {self.rules}")
-        self.reduce_rules()
-        print(f"reduced rules: {self.rules}")
+        self.determine_cells()
+                
+        # print(f"rules: {self.rules}")
+        # start = time.time()
+        # self.reduce_rules()
+        # end = time.time()
+
+        # print(f"Time taken to reduce rules: {end - start} seconds")
+        # print(f"reduced rules: {self.rules}")
+        
+        start = time.time()
         frontiers: List[Frontier] = self.generate_frontiers()
-        print(f"frontiers: {frontiers}")
+        end = time.time()
+
+        print(f"Time taken to generate frontiers: {end - start} seconds")
+        # print(f"frontiers: {frontiers}")
+        
+        start = time.time()
         frontiers_counts: List[FrontierCounts] = self.generate_frontiers_counts(frontiers)
-        print(f"frontiers counts: {frontiers_counts}")
+        end = time.time()
+
+        print(f"Time taken to generate frontier counts: {end - start} seconds")
+        # print(f"frontiers counts: {frontiers_counts}")
+        
+        start = time.time()
         total_combinations_count = self.generate_global_counts(frontiers_counts)
-        print(f"total combinations count: {total_combinations_count}")
+        end = time.time()
+
+        print(f"Time taken to generate global counts: {end - start} seconds")
+        # print(f"total combinations count: {total_combinations_count}")
+        
+        start = time.time()
         frequencies: Dict[str, float] = self.generate_frequencies(frontiers_counts, total_combinations_count)
+        end = time.time()
+
+        print(f"Time taken to generate frequencies: {end - start} seconds")
         print(f"frequencies: {frequencies}")
         
         return frequencies

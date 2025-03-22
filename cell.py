@@ -1,15 +1,5 @@
 from util import encode, decode 
-
-
-class GameStrings:
-    MINE = '💣'
-    FLAG = '🚩'
-    UNREVEALED = '■'
-    EMPTY = ' '
-    COVERED_STATE = "covered"
-    EXPLODED_STATE = "exploded"
-    
-
+from colorama import Fore, Style
 
 class Cell:
     def __init__(self, row: int, column: int, num_columns: int, is_mine: bool = False):
@@ -26,12 +16,12 @@ class Cell:
         self.adjacent_cell_count = 0
         self.adjacent_undetermined_mine_count = 0
         self.adjacent_undetermined_cell_count = 0
-        self.state = GameStrings.COVERED_STATE
         self.row = row 
         self.column = column 
         self.num_columns = num_columns
         self.encoded_value = encode(row, column, num_columns)
         self.probability = 0
+        self.lost_game = False
 
         
     def change_state(self, new_state: str):
@@ -39,7 +29,10 @@ class Cell:
 
     def __repr__(self):
         if self.revealed:
-            if self.is_mine:
+            if self.lost_game:
+                return Fore.RED + "[ M ]" + Style.RESET_ALL
+
+            elif self.is_mine:
                 return "[ M ]"
             
             else:
@@ -55,8 +48,11 @@ class Cell:
                 elif self.probability == 1.0:
                     return "[ M ]"
                 
+                if self.probability > 0 and self.probability < .1:
+                    return f"[{int(self.probability*100)}% ]"
+
                 else: 
                     return f"[{int(self.probability*100)}%]"
             
             else:
-                return '[   ]'
+                return f"[   ]"

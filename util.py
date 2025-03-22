@@ -1,5 +1,5 @@
 from typing import Tuple, List
-from minesweeper import Rule
+from rule import Rule
 
 def encode(row: int, column: int, num_columns: int) -> str:
     """
@@ -13,13 +13,13 @@ def encode(row: int, column: int, num_columns: int) -> str:
     """
     id = ""
     idx = row*num_columns + column
-    
+        
     if idx == 0:
-        return "A"
+        return "a"
     
     while (idx != 0):
         remainder = idx % 26
-        id += chr(remainder + ord('A'))
+        id += chr(remainder + ord('a'))
         idx //= 26
         
     return id[::-1]
@@ -31,11 +31,22 @@ def decode(encoded_value: str, num_columns: int) -> Tuple[int, int]:
     """
     index = 0
     for char in encoded_value:
-        index = index *26 + (ord(char) - ord('A'))
+        index = index *26 + (ord(char) - ord('a'))
     row = index // num_columns
     col = index % num_columns
 
     return row, col
+
+def decode_int(encoded_value: str, num_columns: int) -> Tuple[int, int]:
+    """
+    Decodes a base-26 string back into (row, column).
+    """
+    index = 0
+    for char in encoded_value:
+        index = index *26 + (ord(char) - ord('a'))
+        
+    return index
+
 
 def transform_board_to_ruleset(board: List[List[int]], num_mines: int) -> List[Rule]:
     """
