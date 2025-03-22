@@ -4,6 +4,7 @@ from typing import List, Tuple, Dict
 from rule import Rule 
 from minesweeper import MinesweeperSolver
 from cell import Cell
+from timekeeper import TimeKeeper
 
 
 class MinesweeperBoard:
@@ -21,6 +22,7 @@ class MinesweeperBoard:
         self.cells_with_no_information = self.cell_count
         self.uncovered_cell_count = 0
         self.amassed_risk = 0
+        self.time_keeper = TimeKeeper()
         
         # State variables for win / loss
         self.continue_playing = True
@@ -379,7 +381,7 @@ class MinesweeperBoard:
         return rules
                                                         
             
-    def play_game(self):
+    def play_game(self) -> Tuple[bool, TimeKeeper]:
         first_row, first_col = self.get_first_guess()
         self.place_mines_safe(first_row, first_col)
         self.count_board_adjacent_mines_and_cells()
@@ -388,8 +390,9 @@ class MinesweeperBoard:
         
         # print(f"initial unreduced rules: {rules}")
         ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
-        probabilities: Dict[str, float] = ms.solve()
+        probabilities, times = ms.solve()
         self.update_probabilities(probabilities)
+        self.time_keeper.merge(times)
         
         self.print_board()
                 
@@ -403,16 +406,17 @@ class MinesweeperBoard:
             
             rules: List[Rule] = self.generate_rules()
             ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
-            probabilities: Dict[str, float] = ms.solve()
+            probabilities, times = ms.solve()
             self.update_probabilities(probabilities)
+            self.time_keeper.merge(times)
 
             self.print_board()
             
         self.print_board()
-        return self.determine_outcome()
+        return self.determine_outcome(), self.time_keeper
             
             
-    def play_game_ai(self):
+    def play_game_ai(self) -> Tuple[bool, TimeKeeper]:
         first_row = 0 
         first_col = 0
         self.place_mines_safe(first_row, first_col)
@@ -422,7 +426,9 @@ class MinesweeperBoard:
         
         # print(f"initial unreduced rules: {rules}")
         ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
-        probabilities: Dict[str, float] = ms.solve()
+        probabilities, times = ms.solve()
+        self.time_keeper.merge(times)
+
         self.update_probabilities(probabilities)
         
         self.print_board()
@@ -437,10 +443,12 @@ class MinesweeperBoard:
             
             rules: List[Rule] = self.generate_rules()
             ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
-            probabilities: Dict[str, float] = ms.solve()
+            probabilities, times = ms.solve()
+            self.time_keeper.merge(times)
+
             self.update_probabilities(probabilities)
 
             self.print_board()
             
         self.print_board()
-        return self.determine_outcome()
+        return self.determine_outcome(), self.time_keeper

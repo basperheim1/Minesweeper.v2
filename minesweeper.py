@@ -4,8 +4,9 @@ from collections import deque
 from rule import Rule
 import time
 from util import decode_int
+from timekeeper import TimeKeeper
 
-
+        
     
 class RuleReducer():
     """
@@ -45,6 +46,8 @@ class RuleReducer():
     def reduce_rules(self):
         queue: Deque[Rule] = deque()
         
+        # print(f"rules: {self.rules}")
+        
         # Add all the rules to the queue 
         for rule in self.rules:
             queue.append(rule)
@@ -66,50 +69,50 @@ class RuleReducer():
                 # All the undetermined cells in this rule must be mines 
                 if current_rule.num_undetermined_mines == len(current_rule.undetermined_cells):
                     
-                    self.rules.remove(current_rule)
+                    # Remove the rule and add the cells in that rule to the mines list
                     for cell in current_rule.undetermined_cells:
-                        
-                        # add them to mine list 
                         self.mines.append(cell)
+                    self.rules.remove(current_rule)
+                    
+                    # Update the other rules based on the information gained from this iteration 
+                    # of the function 
+                    for rule in self.rules:
+                        added_rule = False
                         
-                        # Decrement the # of undetermined_mines for all rules that contain this cell,
-                        # also remove the cell itself from the list of undetermined_cells 
-                        for rule in self.rule_lookup[cell]:
-                            
-                            # Create a new rule and add it to the lookup table 
-                            # new_undetermined_cells = rule.undetermined_cells()
-                            # new_undetermined_cells.remove(cell)
-                            # new_rule: Rule = Rule(rule.num_undetermined_mines - 1, new_undetermined_cells)
-                            
-                            # self.rule_lookup[]
-                            rule.num_undetermined_mines -= 1
-                            rule.undetermined_cells.remove(cell)
-                            rules_to_be_added.add(rule)
-                            
-                        # remove the cell from the rule_lookup table
-                        del self.rule_lookup[cell]
+                        for cell in current_rule.undetermined_cells:
+                            if cell in rule.undetermined_cells:
+                                rule.undetermined_cells.remove(cell)
+                                rule.num_undetermined_mines -= 1
+                                
+                                if not added_rule:
+                                    rules_to_be_added.add(rule)
+                                    added_rule = True
                     
                 # All the undetrmined cells in this rule must be safes        
                 elif current_rule.num_undetermined_mines == 0:
                     
-                    self.rules.remove(current_rule)
                     for cell in current_rule.undetermined_cells:
-                        
-                        # Add them to the safe list 
                         self.safes.append(cell)
+                    self.rules.remove(current_rule)
+                    
+                    for rule in self.rules:
                         
-                        # For all rules that contain this cell, remove the cell from the list of 
-                        # undetermined_cells
-                        for rule in self.rule_lookup[cell]:
-                            rule.undetermined_cells.remove(cell)
-                            rules_to_be_added.add(rule)
-                            
-                    # remove the cell from the rule_lookup table
-                        del self.rule_lookup[cell]
+                        added_rule = False 
+                        
+                        for cell in current_rule.undetermined_cells:
+                            if cell in rule.undetermined_cells:
+                                rule.undetermined_cells.remove(cell)
+                                if not added_rule:
+                                    rules_to_be_added.add(rule)
+                                    added_rule = True
+                                
                             
                 for rule in rules_to_be_added:
                     queue.append(rule)   
                     # print(rule)
+                    
+        # print(f"reduced rules: {self.rules}")
+
         
         
 class Frontier():
@@ -533,14 +536,20 @@ class MinesweeperSolver:
         self.rules = rr.rules
                                     
 
-    def solve(self) -> Dict[str, float]:
+    def solve(self) -> TimeKeeper:
         
+        TK: TimeKeeper = TimeKeeper()
+        
+        start = time.time()
         self.determine_cells()
-                
+        end = time.time()
+        TK.increment_times("determine_cells", end - start)
+
         # print(f"rules: {self.rules}")
-        # start = time.time()
-        # self.reduce_rules()
-        # end = time.time()
+        start = time.time()
+        self.reduce_rules()
+        end = time.time()
+        TK.increment_times("reduce_rules", end - start)
 
         # print(f"Time taken to reduce rules: {end - start} seconds")
         # print(f"reduced rules: {self.rules}")
@@ -548,6 +557,7 @@ class MinesweeperSolver:
         start = time.time()
         frontiers: List[Frontier] = self.generate_frontiers()
         end = time.time()
+        TK.increment_times("generate_frontiers", end - start)
 
         # print(f"Time taken to generate frontiers: {end - start} seconds")
         # print(f"frontiers: {frontiers}")
@@ -555,6 +565,8 @@ class MinesweeperSolver:
         start = time.time()
         frontiers_counts: List[FrontierCounts] = self.generate_frontiers_counts(frontiers)
         end = time.time()
+        TK.increment_times("generate_frontiers_counts", end - start)
+
 
         # print(f"Time taken to generate frontier counts: {end - start} seconds")
         # print(f"frontiers counts: {frontiers_counts}")
@@ -562,15 +574,18 @@ class MinesweeperSolver:
         start = time.time()
         total_combinations_count = self.generate_global_counts(frontiers_counts)
         end = time.time()
-
+        TK.increment_times("generate_global_counts", end - start)
+        
         # print(f"Time taken to generate global counts: {end - start} seconds")
         # print(f"total combinations count: {total_combinations_count}")
         
         start = time.time()
         frequencies: Dict[str, float] = self.generate_frequencies(frontiers_counts, total_combinations_count)
         end = time.time()
+        TK.increment_times("generate_frequencies", end - start)
+
 
         # print(f"Time taken to generate frequencies: {end - start} seconds")
         # print(f"frequencies: {frequencies}")
         
-        return frequencies
+        return frequencies, TK

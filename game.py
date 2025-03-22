@@ -1,4 +1,5 @@
 from board import MinesweeperBoard
+from timekeeper import TimeKeeper
 
 def get_board_settings(max_rows=24, max_cols=30):
     while True:
@@ -29,6 +30,8 @@ def game(ai_player: bool = True, num_iterations: int =1, return_stats: bool = Fa
     amassed_risk = 0    
     times_won = 0
     
+    time_keeper = TimeKeeper()
+    
     for i in range(num_iterations):
         # rows, cols, mine_count = get_board_settings()
         
@@ -42,22 +45,22 @@ def game(ai_player: bool = True, num_iterations: int =1, return_stats: bool = Fa
             board = MinesweeperBoard(16, 30, 99)
             
         else:
-            board = MinesweeperBoard(24, 30, 200)
-
-
-            
+            board = MinesweeperBoard(24, 30, 200)    
         
         if ai_player:
-            won: bool = board.play_game_ai()
+            won, times = board.play_game_ai()
         else:
-            won: bool = board.play_game()
+            won, times = board.play_game()
             
         if won:
             times_won += 1
+            
+        time_keeper.merge(times)
         amassed_risk += board.amassed_risk
         
     if return_stats:
         print(f"total amassed risk: {amassed_risk / (num_iterations-times_won)}")
         print(f"win rate: {times_won / num_iterations}")
+        print(f"times: {time_keeper}")
     
-game(True, 100, True, "e")
+game(True, 100, True, "impossible")
