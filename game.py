@@ -25,21 +25,39 @@ def get_board_settings(max_rows=24, max_cols=30):
             print("Invalid input. Please enter numbers only, separated by spaces.")
             
         
-def game():
-    amassed_risk = 0
-    num_iterations = 50
-    
+def game(ai_player: bool = True, num_iterations: int =1, return_stats: bool = False, difficulty: str = "b"):
+    amassed_risk = 0    
     times_won = 0
     
     for i in range(num_iterations):
         # rows, cols, mine_count = get_board_settings()
-        board = MinesweeperBoard(16, 30, 99)
-        won =board.play_game_ai()
+        
+        if difficulty == "b":
+            board = MinesweeperBoard(9, 9, 10)
+            
+        elif difficulty == "i":
+            board = MinesweeperBoard(16, 16, 40)
+            
+        elif difficulty == "e":
+            board = MinesweeperBoard(16, 30, 99)
+            
+        else:
+            board = MinesweeperBoard(24, 30, 200)
+
+
+            
+        
+        if ai_player:
+            won: bool = board.play_game_ai()
+        else:
+            won: bool = board.play_game()
+            
         if won:
             times_won += 1
         amassed_risk += board.amassed_risk
         
-    print(f"total amassed risk: {amassed_risk / num_iterations-times_won}")
-    print(f"win rate: {times_won / num_iterations}")
+    if return_stats:
+        print(f"total amassed risk: {amassed_risk / (num_iterations-times_won)}")
+        print(f"win rate: {times_won / num_iterations}")
     
-game()
+game(True, 100, True, "e")

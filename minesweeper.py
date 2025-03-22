@@ -109,7 +109,7 @@ class RuleReducer():
                             
                 for rule in rules_to_be_added:
                     queue.append(rule)   
-                    print(rule)
+                    # print(rule)
         
         
 class Frontier():
@@ -205,10 +205,10 @@ class Frontier():
         """
         cells: List[str] = list(self.cells)
         
-        print(cells)
+        # print(cells)
         
-        cells_sorted = sorted(cells, key=lambda encoded_value: decode_int(encoded_value, 30))
-        print(cells_sorted)
+        cells_sorted = sorted(cells, key=lambda encoded_value: decode_int(encoded_value))
+        # print(cells_sorted)
 
         
         # Make a lookup table so we can find exactly what index a 
@@ -549,28 +549,28 @@ class MinesweeperSolver:
         frontiers: List[Frontier] = self.generate_frontiers()
         end = time.time()
 
-        print(f"Time taken to generate frontiers: {end - start} seconds")
+        # print(f"Time taken to generate frontiers: {end - start} seconds")
         # print(f"frontiers: {frontiers}")
         
         start = time.time()
         frontiers_counts: List[FrontierCounts] = self.generate_frontiers_counts(frontiers)
         end = time.time()
 
-        print(f"Time taken to generate frontier counts: {end - start} seconds")
+        # print(f"Time taken to generate frontier counts: {end - start} seconds")
         # print(f"frontiers counts: {frontiers_counts}")
         
         start = time.time()
         total_combinations_count = self.generate_global_counts(frontiers_counts)
         end = time.time()
 
-        print(f"Time taken to generate global counts: {end - start} seconds")
+        # print(f"Time taken to generate global counts: {end - start} seconds")
         # print(f"total combinations count: {total_combinations_count}")
         
         start = time.time()
         frequencies: Dict[str, float] = self.generate_frequencies(frontiers_counts, total_combinations_count)
         end = time.time()
 
-        print(f"Time taken to generate frequencies: {end - start} seconds")
-        print(f"frequencies: {frequencies}")
+        # print(f"Time taken to generate frequencies: {end - start} seconds")
+        # print(f"frequencies: {frequencies}")
         
         return frequencies

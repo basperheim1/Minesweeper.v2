@@ -37,7 +37,7 @@ def decode(encoded_value: str, num_columns: int) -> Tuple[int, int]:
 
     return row, col
 
-def decode_int(encoded_value: str, num_columns: int) -> Tuple[int, int]:
+def decode_int(encoded_value: str) -> int:
     """
     Decodes a base-26 string back into (row, column).
     """

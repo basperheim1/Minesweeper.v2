@@ -54,7 +54,7 @@ class MinesweeperBoard:
         """
         Prints the board 
         """
-        
+        return
         
         top_row = "     "
         for col_index in range(len(self.board[0])):
@@ -127,7 +127,7 @@ class MinesweeperBoard:
         else:
             print("Congratulations, you won the game!")
             
-        print(f"amassed risk: {self.amassed_risk}")
+        # print(f"amassed risk: {self.amassed_risk}")
         return not self.lost
             
     def reveal_all(self):
@@ -193,6 +193,16 @@ class MinesweeperBoard:
         
         self.uncovered_cell_count += 1
         
+        # Check for losses
+        if clicked_cell.is_mine:
+            clicked_cell.lost_game = True
+
+            self.continue_playing = False
+            self.lost = True
+            self.reveal_all()
+            return False
+        
+        # Check for wins
         if self.uncovered_cell_count == self.safe_count:
             self.continue_playing = False
             self.lost = False
@@ -206,25 +216,15 @@ class MinesweeperBoard:
         clicked_cell.determined = True
         clicked_cell.revealed = True
         clicked_cell.probability = float(clicked_cell.is_mine)
-
-        
-        if clicked_cell.is_mine:
-            clicked_cell.lost_game = True
-
-            self.continue_playing = False
-            self.lost = True
-            self.reveal_all()
-            return False
             
-        else:
-            if clicked_cell.adjacent_mine_count == 0:
-                
-                # Click all of the adjacent cells as well 
-                for dr in [-1, 0, 1]:
-                    for dc in [-1, 0, 1]:
-                        nr, nc = row + dr, col + dc
-                        if 0 <= nr < self.rows and 0 <= nc < self.cols:
-                            self.click_cell(nr, nc)
+        if clicked_cell.adjacent_mine_count == 0:
+            
+            # Click all of the adjacent cells as well 
+            for dr in [-1, 0, 1]:
+                for dc in [-1, 0, 1]:
+                    nr, nc = row + dr, col + dc
+                    if 0 <= nr < self.rows and 0 <= nc < self.cols:
+                        self.click_cell(nr, nc)
                             
         return True     
     
@@ -278,7 +278,7 @@ class MinesweeperBoard:
         """
         
         expected_mines_not_yet_determined = probabilities["expected_number_of_mines"]
-        print(f"SDFDSF: {expected_mines_not_yet_determined}")
+        # print(f"SDFDSF: {expected_mines_not_yet_determined}")
         
         # Note, that keys in the dictionary will never be intially determined
         for cell_encoded_value in probabilities.keys():
@@ -302,8 +302,8 @@ class MinesweeperBoard:
                 
         if self.cells_with_no_information > 0:
             probability_no_information_cell = (self.undetermined_mine_count - expected_mines_not_yet_determined) / self.cells_with_no_information
-            print(probability_no_information_cell)
-            print(f"cells with no info: {self.cells_with_no_information}")
+            # print(probability_no_information_cell)
+            # print(f"cells with no info: {self.cells_with_no_information}")
             for row in range(self.rows):
                 for col in range(self.cols):
                     if not self.board[row][col].some_information:
@@ -323,7 +323,7 @@ class MinesweeperBoard:
                     if current_cell.probability < probability:
                         probability = current_cell.probability
                         encoded_cell = current_cell.encoded_value
-                        print(probability)
+                        # print(probability)
                         
         self.amassed_risk += probability
                         
@@ -386,7 +386,7 @@ class MinesweeperBoard:
         self.click_cell(first_row, first_col)
         rules: List[Rule] = self.generate_rules()
         
-        print(f"initial unreduced rules: {rules}")
+        # print(f"initial unreduced rules: {rules}")
         ms = MinesweeperSolver(rules, self.undetermined_mine_count, self.cells_with_no_information)
         probabilities: Dict[str, float] = ms.solve()
         self.update_probabilities(probabilities)
