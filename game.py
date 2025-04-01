@@ -63,4 +63,4 @@ def game(ai_player: bool = True, num_iterations: int =1, return_stats: bool = Fa
         print(f"win rate: {times_won / num_iterations}")
         print(f"times: {time_keeper}")
     
-game(True, 1000, True, "e")
+game(True, 1000, True, "iasdf")
