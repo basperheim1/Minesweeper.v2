@@ -21,10 +21,9 @@ class RuleReducer():
     each undetermined cell adjacent to that cell is safe. 
     """
     def __init__(self):
-        self.rules: List[Rule] = set()
-        self.rule_lookup: Dict[str, Set[Rule]] = {}
-        self.mines: List[str] = []
-        self.safes: List[str] = []
+        self.rules: Set[Rule] = set()
+        self.mines: Set[str] = set()
+        self.safes: Set[str] = set()
         
     def add_rules(self, rules: List[Rule]):
         for rule in rules:
@@ -37,81 +36,134 @@ class RuleReducer():
             return
         
         self.rules.add(rule)
-        for cell in rule.undetermined_cells:
-            if cell not in self.rule_lookup:
-                self.rule_lookup[cell] = set()
-                
-            self.rule_lookup[cell].add(rule)
             
     def reduce_rules(self):
-        queue: Deque[Rule] = deque()
+        rules_deque: Deque[Rule] = deque()
         
-        # print(f"rules: {self.rules}")
-        
-        # Add all the rules to the queue 
         for rule in self.rules:
-            queue.append(rule)
+            rules_deque.appendleft(rule)
             
-        while queue:
-            current_rule = queue.popleft()
+        while rules_deque:
+            current_rule: Rule = rules_deque.pop()
             
-            # # Possible rule is in the queue but was already removed, in this 
-            # # case, we want to ignore the rule 
-            # print(f"current rule: {current_rule}")
-            # print(f"rules: {self.rules}")
             if current_rule in self.rules:
-                # print("IN RULES")
-
-                # Any rule that was modified by the current rule should be added to the queue 
-                # to see if it can be removed 
-                rules_to_be_added: Set[Rule] = set()
-                
-                # All the undetermined cells in this rule must be mines 
-                if current_rule.num_undetermined_mines == len(current_rule.undetermined_cells):
+            
+                # Each cell in the rule is safe
+                if current_rule.num_undetermined_mines == 0:
                     
-                    # Remove the rule and add the cells in that rule to the mines list
+                    # Add the cells to the safe set 
                     for cell in current_rule.undetermined_cells:
-                        self.mines.append(cell)
-                    self.rules.remove(current_rule)
-                    
-                    # Update the other rules based on the information gained from this iteration 
-                    # of the function 
-                    for rule in self.rules:
-                        added_rule = False
+                        self.safes.add(cell)
                         
-                        for cell in current_rule.undetermined_cells:
-                            if cell in rule.undetermined_cells:
-                                rule.undetermined_cells.remove(cell)
-                                rule.num_undetermined_mines -= 1
+                    for rule in self.rules.copy():
+                        difference_between_sets = rule.undetermined_cells.difference(current_rule.undetermined_cells)
+                        
+                        # There is an overlap between the current rule and the rule we are iterating over
+                        if len(difference_between_sets) != len(rule.undetermined_cells):
+                            new_rule = Rule(rule.num_undetermined_mines, difference_between_sets)
+                            self.rules.remove(rule)
+                            if new_rule.num_undetermined_mines > 0:
+                                self.rules.add(new_rule)
+                                rules_deque.appendleft(new_rule)
                                 
-                                if not added_rule:
-                                    rules_to_be_added.add(rule)
-                                    added_rule = True
+                # Each cell in the rule is a mine
+                elif current_rule.num_undetermined_mines == len(current_rule.undetermined_cells):
                     
-                # All the undetrmined cells in this rule must be safes        
-                elif current_rule.num_undetermined_mines == 0:
-                    
+                    # Add the cells to the mine set 
                     for cell in current_rule.undetermined_cells:
-                        self.safes.append(cell)
-                    self.rules.remove(current_rule)
+                        self.mines.add(cell)
+                        
+                    # Iterate through our rules and modify them to reflect the new information gain 
+                    for rule in self.rules.copy():
+                        union_between_sets = rule.undetermined_cells.intersection(current_rule.undetermined_cells)
+                        difference_between_sets = rule.undetermined_cells.difference(current_rule.undetermined_cells)
+                        
+                        # There is an overlap between the current rule and the rule we are iterating over
+                        if len(difference_between_sets) != len(rule.undetermined_cells):
+                            
+                            new_rule = Rule(rule.num_undetermined_mines - len(union_between_sets), difference_between_sets)
+                            self.rules.remove(rule)
+                            if new_rule.num_undetermined_mines > 0:
+                                self.rules.add(new_rule)
+                                rules_deque.appendleft(new_rule)
+                                
+                            # print(f"current rule: {current_rule}")
+                            # print(f"rule: {rule}")
+                            # print(f"new rule: {new_rule}")
                     
-                    for rule in self.rules:
+
+        
+        
+            
+    # def reduce_rules(self):
+    #     queue: Deque[Rule] = deque()
+        
+    #     # print(f"rules: {self.rules}")
+        
+    #     # Add all the rules to the queue 
+    #     for rule in self.rules:
+    #         queue.append(rule)
+            
+    #     while queue:
+    #         current_rule = queue.popleft()
+            
+    #         # # Possible rule is in the queue but was already removed, in this 
+    #         # # case, we want to ignore the rule 
+    #         # print(f"current rule: {current_rule}")
+    #         # print(f"rules: {self.rules}")
+    #         if current_rule in self.rules:
+    #             # print("IN RULES")
+
+    #             # Any rule that was modified by the current rule should be added to the queue 
+    #             # to see if it can be removed 
+    #             rules_to_be_added: Set[Rule] = set()
+                
+    #             # All the undetermined cells in this rule must be mines 
+    #             if current_rule.num_undetermined_mines == len(current_rule.undetermined_cells):
+                    
+    #                 # Remove the rule and add the cells in that rule to the mines list
+    #                 for cell in current_rule.undetermined_cells:
+    #                     self.mines.append(cell)
+    #                 self.rules.remove(current_rule)
+                    
+    #                 # Update the other rules based on the information gained from this iteration 
+    #                 # of the function 
+    #                 for rule in self.rules:
+    #                     added_rule = False
                         
-                        added_rule = False 
+    #                     for cell in current_rule.undetermined_cells:
+    #                         if cell in rule.undetermined_cells:
+    #                             rule.undetermined_cells.remove(cell)
+    #                             rule.num_undetermined_mines -= 1
+                                
+    #                             if not added_rule:
+    #                                 rules_to_be_added.add(rule)
+    #                                 added_rule = True
+                    
+    #             # All the undetrmined cells in this rule must be safes        
+    #             elif current_rule.num_undetermined_mines == 0:
+                    
+    #                 for cell in current_rule.undetermined_cells:
+    #                     self.safes.append(cell)
+    #                 self.rules.remove(current_rule)
+                    
+    #                 for rule in self.rules:
                         
-                        for cell in current_rule.undetermined_cells:
-                            if cell in rule.undetermined_cells:
-                                rule.undetermined_cells.remove(cell)
-                                if not added_rule:
-                                    rules_to_be_added.add(rule)
-                                    added_rule = True
+    #                     added_rule = False 
+                        
+    #                     for cell in current_rule.undetermined_cells:
+    #                         if cell in rule.undetermined_cells:
+    #                             rule.undetermined_cells.remove(cell)
+    #                             if not added_rule:
+    #                                 rules_to_be_added.add(rule)
+    #                                 added_rule = True
                                 
                             
-                for rule in rules_to_be_added:
-                    queue.append(rule)   
-                    # print(rule)
+    #             for rule in rules_to_be_added:
+    #                 queue.append(rule)   
+    #                 # print(rule)
                     
-        # print(f"reduced rules: {self.rules}")
+    #     # print(f"reduced rules: {self.rules}")
 
         
         
@@ -348,12 +400,12 @@ class FrontierCounts():
                         
 class MinesweeperSolver:
     def __init__(self, rules: List[Rule], num_mines_left: int, num_uninformed_cells: int):
-        self.rules = rules 
+        self.rules = frozenset(rules)
         self.num_mines_left = num_mines_left
         self.num_uninformed_cells = num_uninformed_cells
-        self.mines: List[str] = []
-        self.safes: List[str] = []
-        self.cells = set()
+        self.mines: Set[str] = set()
+        self.safes: Set[str] = set()
+        self.cells: Set[str] = set()
         
     def determine_cells(self):
         for rule in self.rules:
@@ -527,6 +579,7 @@ class MinesweeperSolver:
     
     def reduce_rules(self):
         rr: RuleReducer = RuleReducer()
+        # print(self.rules)
         rr.add_rules(self.rules)
         rr.reduce_rules()
         
@@ -550,6 +603,7 @@ class MinesweeperSolver:
         self.reduce_rules()
         end = time.time()
         TK.increment_times("reduce_rules", end - start)
+        # time.sleep(.5)
 
         # print(f"Time taken to reduce rules: {end - start} seconds")
         # print(f"reduced rules: {self.rules}")

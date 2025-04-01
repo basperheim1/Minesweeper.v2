@@ -376,7 +376,7 @@ class MinesweeperBoard:
                     # There are some cells around the revealed cell that are not yet determined, meaning 
                     # that we have a rule
                     if adjacent_undetermined_cells:
-                        rules.append(Rule(cell.adjacent_undetermined_mine_count, adjacent_undetermined_cells))
+                        rules.append(Rule(cell.adjacent_undetermined_mine_count, frozenset(adjacent_undetermined_cells)))
                         
         return rules
                                                         

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, FrozenSet
 
 class Rule():
     """
@@ -16,9 +16,9 @@ class Rule():
     that of the three tiles, 'A', 'B', and 'C', that only one 
     of those will be a mine. 
     """
-    def __init__(self, num_mines: int, cells: List[str]):
+    def __init__(self, num_mines: int, cells: FrozenSet[str]):
         self.num_undetermined_mines: int = num_mines
-        self.undetermined_cells: List[str] = cells
+        self.undetermined_cells: FrozenSet[str] = cells
         
     def __repr__(self):
         return f"{self.num_undetermined_mines}: {self.undetermined_cells}"
@@ -29,8 +29,8 @@ class Rule():
     def __eq__(self, other):
         if not isinstance(other, Rule):
             return False
-        return self.num_undetermined_mines == other.num_undetermined_mines and set(self.undetermined_cells) == set(other.undetermined_cells)
-    
+        return (self.num_undetermined_mines == other.num_undetermined_mines and
+                self.undetermined_cells == other.undetermined_cells)
+
     def __hash__(self):
-        # Convert list to a frozen set to ensure order-independent hashing
-        return hash((self.num_undetermined_mines, frozenset(self.undetermined_cells)))
+        return hash((self.num_undetermined_mines, self.undetermined_cells))
