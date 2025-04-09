@@ -18,5 +18,12 @@ class TimeKeeper():
         for key in other.times:
             self.times[key] += other.times[key]
             
+    def get_total_times(self) -> float: 
+        total_time = 0
+        for key in self.times:
+            total_time += self.times[key]
+            
+        return total_time
+            
     def __repr__(self):
         return str(self.times)

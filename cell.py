@@ -23,9 +23,6 @@ class Cell:
         self.probability = 0
         self.lost_game = False
 
-        
-    def change_state(self, new_state: str):
-        self.state = new_state
 
     def __repr__(self):
         if self.revealed:

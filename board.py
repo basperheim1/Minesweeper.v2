@@ -5,6 +5,8 @@ from rule import Rule
 from minesweeper import MinesweeperSolver
 from cell import Cell
 from timekeeper import TimeKeeper
+import os
+import time
 
 
 class MinesweeperBoard:
@@ -53,29 +55,46 @@ class MinesweeperBoard:
         
         
     def print_board(self):
+        
+        return
         """
         Prints the board 
         """
-        return
+        # return
+        output_string = "     "
+
         
         top_row = "     "
         for col_index in range(len(self.board[0])):
             if col_index > 9:
                 
+                output_string += f"{col_index}    "
                 top_row += f"{col_index}    "
             
             else:
+                
+                output_string += f"{col_index}     "
                 top_row += f"{col_index}     "
-        print(top_row)
+        # print(top_row)
+        
+        output_string += "\n"
         
         for row_index in range(len(self.board)):
             row = ' '.join(str(cell) for cell in self.board[row_index])
             if row_index > 9:
-                print(f"{row_index} {row}")
+                output_string += f"{row_index} {row}\n"
+                # print(f"{row_index} {row}")
             else:
-                print(f" {row_index} {row}")
+                output_string += f" {row_index} {row}\n"
+                # print(f" {row_index} {row}")
 
             # print(' '.join(str(cell) for cell in self.board[row_index]))
+            
+        os.system('cls')
+
+        print(output_string)
+        time.sleep(.001)
+
             
             
     def get_valid_coordinates(self):
@@ -282,7 +301,7 @@ class MinesweeperBoard:
         expected_mines_not_yet_determined = probabilities["expected_number_of_mines"]
         # print(f"SDFDSF: {expected_mines_not_yet_determined}")
         
-        # Note, that keys in the dictionary will never be intially determined
+        # Note, that keys in the dictionary will never be ipntially determined
         for cell_encoded_value in probabilities.keys():
             
             if cell_encoded_value != "expected_number_of_mines":
@@ -333,7 +352,7 @@ class MinesweeperBoard:
                     
              
                 
-    def generate_rules(self):
+    def generate_rules(self) -> List[Rule]:
         """
         Generates the rules for the current state of the game
         

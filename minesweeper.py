@@ -62,7 +62,7 @@ class RuleReducer():
                         if len(difference_between_sets) != len(rule.undetermined_cells):
                             new_rule = Rule(rule.num_undetermined_mines, difference_between_sets)
                             self.rules.remove(rule)
-                            if new_rule.num_undetermined_mines > 0:
+                            if len(new_rule.undetermined_cells) > 0:
                                 self.rules.add(new_rule)
                                 rules_deque.appendleft(new_rule)
                                 
@@ -589,7 +589,7 @@ class MinesweeperSolver:
         self.rules = rr.rules
                                     
 
-    def solve(self) -> TimeKeeper:
+    def solve(self) -> Tuple[Dict[str, float], TimeKeeper]:
         
         TK: TimeKeeper = TimeKeeper()
         
