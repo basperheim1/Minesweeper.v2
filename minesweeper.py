@@ -83,7 +83,7 @@ class RuleReducer():
                             
                             new_rule = Rule(rule.num_undetermined_mines - len(union_between_sets), difference_between_sets)
                             self.rules.remove(rule)
-                            if new_rule.num_undetermined_mines > 0:
+                            if len(new_rule.undetermined_cells) > 0:
                                 self.rules.add(new_rule)
                                 rules_deque.appendleft(new_rule)
                                 
